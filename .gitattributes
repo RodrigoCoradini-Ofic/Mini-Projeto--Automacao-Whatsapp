@@ -1,2 +1,100 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Mini Projeto Selenium - Automação Whatsapp
+
+## - Iniciar o Selenium
+## - Pegar de uma Base de Dados os Números de Telefone/Nome/Mensagem
+## - Entrar no Whatsapp com o link pré-pronto -> já com o Número e a Mensagem
+## - Clicar em enviar
+## - Cuidar do Contato "Rodrigo Coradini" -> para enviar como anexo o documento
+
+### OBS: Não consegui automatizar a parte de enviar arquivo pois precisa do PYAUTOGUI
+
+# Usando o Selenium Atualizando Ele
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+
+# adicionando um Perfil pro Selenium
+options = webdriver.ChromeOptions()
+options.add_argument(r"user-data-dir=C:\Users\eliza\AppData\Local\Google\Chrome\User Data\Profile Selenium")
+
+servico = Service(ChromeDriverManager().install())
+navegador = webdriver.Chrome(service=servico, options=options)
+
+# Importando a Tabela da Tabela
+import pandas as pd
+tabela = pd.read_excel("Envios.xlsx")
+
+# Fazendo alterações na Tabela - Alterando os Números e Nomes
+lista_numeros = ["554791421923", "554796545777", "554797622980"]
+lista_nomes = ["Elizabete Dos Santos", "Renato Coradini", "Rodrigo Coradini"]
+
+for i, linha in enumerate(tabela.index):
+    tabela.loc[linha, "telefone"] = lista_numeros[i]
+    tabela.loc[linha, "nome"] = lista_nomes[i]
+
+# Tabela Pronta
+display(tabela)
+
+# Pegando o Caminho do Arquivo
+import os
+
+dirlist = os.listdir(".") 
+for i in dirlist:
+    filename = os.path.abspath(i)
+    if r"C:\Users\eliza\Documents\arquivos-20230704T105252Z-001" in filename:
+        caminho = filename
+        print(caminho)
+        break
+
+import time
+import urllib
+
+# Percorrendo a Tabela Pronta
+
+for linha in tabela.index:
+    nome = tabela.loc[linha, "nome"]
+    mensagem = tabela.loc[linha, "mensagem"]
+    arquivo = tabela.loc[linha, "arquivo"]
+    telefone = tabela.loc[linha, "telefone"]
+    
+    # Fazendo um Tratamento na Mensagem, subistituindo o Nome do Contato
+    texto = mensagem.replace("fulano", nome)
+    # Transformando o texto em um Link
+    texto = urllib.parse.quote(texto)
+    # Link:
+    link = f"https://web.whatsapp.com/send?phone={telefone}&text={texto}"
+    navegador.get(link)
+    
+        
+    # Cuidando do alerta
+    time.sleep(1)
+    try:
+        alerta = navegador.switch_to.alert
+        time.sleep(1)
+        alerta.accept()
+    except:
+        pass
+    
+    # Criar um Sistema para o Código esperar a tela carregar
+    while True:
+        time.sleep(2)
+        lista_elementos = navegador.find_elements(By.ID, 'side')
+        if len(lista_elementos) < 1:
+            break
+    time.sleep(7)
+    
+    # Clicar em Enviar
+    navegador.find_element(By.XPATH, '//*[@id="main"]/footer/div[1]/div/span[2]/div/div[2]/div[2]/button/span').click()
+    
+    # Enviar Arquivo
+    if arquivo != "N":
+        caminho_completo = caminho + r"\arquivos\{}".format(arquivo)
+        navegador.find_element(By.XPATH, '//*[@id="main"]/footer/div[1]/div/span[2]/div/div[1]/div[2]/div/div/span').click()
+        time.sleep(3)
+        navegador.find_element(By.XPATH, '//*[@id="main"]/footer/div[1]/div/span[2]/div/div[1]/div[2]/div/span/div/div/ul/li[4]/button').send_keys(caminho_completo)
+        time.sleep(10)
+        navegador.find_element(By.XPATH, '//*[@id="main"]/footer/div[1]/div/span[2]/div/div[1]/div[2]/div/span/div/div/ul/li[4]/button').click()
+    time.sleep(3)
+
